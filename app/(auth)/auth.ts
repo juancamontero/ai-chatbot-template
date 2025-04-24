@@ -7,7 +7,7 @@ import { getUser } from '@/lib/db/queries';
 import { authConfig } from './auth.config';
 
 interface ExtendedSession extends Session {
-  user: User;
+  user: User & { id: string };
 }
 
 export const {

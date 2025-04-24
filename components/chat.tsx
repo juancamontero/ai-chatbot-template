@@ -6,7 +6,7 @@ import { useState } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
 
 import { ChatHeader } from '@/components/chat-header';
-import type { Vote } from '@/lib/db/schema';
+import { Vote } from '@prisma/client';
 import { fetcher, generateUUID } from '@/lib/utils';
 
 import { Artifact } from './artifact';

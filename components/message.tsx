@@ -5,7 +5,7 @@ import cx from 'classnames';
 import { AnimatePresence, motion } from 'framer-motion';
 import { memo, useMemo, useState } from 'react';
 
-import type { Vote } from '@/lib/db/schema';
+import { Vote } from '@prisma/client';
 
 import { DocumentToolCall, DocumentToolResult } from './document';
 import {

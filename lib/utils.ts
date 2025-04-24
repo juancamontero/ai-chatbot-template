@@ -5,11 +5,12 @@ import type {
   TextStreamPart,
   ToolInvocation,
   ToolSet,
+  ToolResultPart,
 } from 'ai';
 import { type ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
-import type { Message as DBMessage, Document } from '@/lib/db/schema';
+import { Message as DBMessage, Document } from '@prisma/client';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -91,7 +92,10 @@ export function convertToUIMessages(
   return messages.reduce((chatMessages: Array<Message>, message) => {
     if (message.role === 'tool') {
       return addToolMessageToChat({
-        toolMessage: message as CoreToolMessage,
+        toolMessage: {
+          ...message,
+          content: message.content as unknown as ToolResultPart[]
+        } as CoreToolMessage,
         messages: chatMessages,
       });
     }
@@ -102,19 +106,21 @@ export function convertToUIMessages(
 
     if (typeof message.content === 'string') {
       textContent = message.content;
-    } else if (Array.isArray(message.content)) {
+    } else if (Array.isArray(message.content) && message.content !== null) {
       for (const content of message.content) {
-        if (content.type === 'text') {
-          textContent += content.text;
-        } else if (content.type === 'tool-call') {
-          toolInvocations.push({
-            state: 'call',
-            toolCallId: content.toolCallId,
-            toolName: content.toolName,
-            args: content.args,
-          });
-        } else if (content.type === 'reasoning') {
-          reasoning = content.reasoning;
+        if (content && typeof content === 'object' && 'type' in content) {
+          if (content.type === 'text' && 'text' in content) {
+            textContent += content.text as string;
+          } else if (content.type === 'tool-call' && 'toolCallId' in content && 'toolName' in content && 'args' in content) {
+            toolInvocations.push({
+              state: 'call',
+              toolCallId: content.toolCallId as string,
+              toolName: content.toolName as string,
+              args: content.args,
+            });
+          } else if (content.type === 'reasoning' && 'reasoning' in content) {
+            reasoning = content.reasoning as string;
+          }
         }
       }
     }

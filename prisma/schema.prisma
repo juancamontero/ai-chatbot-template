@@ -1,0 +1,147 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("POSTGRES_URL")
+}
+
+// Auth.js Models
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model User {
+  id            String       @id @default(cuid())
+  name          String?
+  email         String?      @unique
+  emailVerified DateTime?
+  password      String?      @db.Text
+  image         String?
+  accounts      Account[]
+  sessions      Session[]
+  chats         Chat[]
+  documents     Document[]
+  suggestions   Suggestion[]
+
+  @@map("users")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verificationTokens")
+}
+
+// Custom Models
+enum VisibilityType {
+  private
+  public
+}
+
+model Chat {
+  id         String        @id @default(uuid())
+  createdAt  DateTime      @default(now())
+  title      String
+  userId     String
+  visibility VisibilityType @default(private)
+  user       User          @relation(fields: [userId], references: [id])
+  messages   Message[]
+  votes      Vote[]
+
+  @@map("chats")
+}
+
+model Message {
+  id        String   @id @default(uuid())
+  chatId    String
+  role      String
+  content   Json     @db.JsonB
+  createdAt DateTime @default(now())
+  chat      Chat     @relation(fields: [chatId], references: [id])
+  votes     Vote[]
+
+  @@map("messages")
+}
+
+model Vote {
+  chatId    String
+  messageId String
+  isUpvoted Boolean
+  chat      Chat    @relation(fields: [chatId], references: [id])
+  message   Message @relation(fields: [messageId], references: [id])
+
+  @@id([chatId, messageId])
+  @@map("votes")
+}
+
+enum DocumentKind {
+  text
+  code
+  image
+  sheet
+}
+
+model Document {
+  id          String        @id @default(uuid())
+  createdAt   DateTime      @default(now())
+  title       String
+  content     String?
+  kind        DocumentKind  @default(text)
+  userId      String
+  user        User          @relation(fields: [userId], references: [id])
+  suggestions Suggestion[]
+
+  @@map("documents")
+}
+
+model Suggestion {
+  id                String   @id @default(uuid())
+  documentId        String
+  originalText      String
+  suggestedText    String
+  description      String?
+  isResolved       Boolean  @default(false)
+  userId           String
+  createdAt        DateTime @default(now())
+  document         Document @relation(fields: [documentId], references: [id])
+  user             User     @relation(fields: [userId], references: [id])
+
+  @@map("suggestions")
+}

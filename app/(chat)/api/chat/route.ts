@@ -100,7 +100,9 @@ export async function POST(request: Request) {
                     id: message.id,
                     chatId: id,
                     role: message.role,
-                    content: message.content,
+                    content: Array.isArray(message.content) 
+                      ? JSON.parse(JSON.stringify(message.content))
+                      : message.content,
                     createdAt: new Date(),
                   };
                 }),
@@ -142,6 +144,10 @@ export async function DELETE(request: Request) {
 
   try {
     const chat = await getChatById({ id });
+
+    if (!chat) {
+      return new Response('Not Found', { status: 404 });
+    }
 
     if (chat.userId !== session.user.id) {
       return new Response('Unauthorized', { status: 401 });
